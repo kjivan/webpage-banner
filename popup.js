@@ -1,12 +1,28 @@
-let url = document.getElementById("url");
+let urlContainer = document.getElementById("url-container");
+let addBtn = document.getElementById("add-url");
 
 chrome.storage.sync.get("urls", function (data) {
-  url.value = data.urls[0];
+  data.urls.forEach(addUrlInput);
 });
 
-url.onblur = (element) => {
-  let url = element.target.value;
-  chrome.storage.sync.set({ urls: [url] }, () => {
-    console.log("url is " + url);
+urlContainer.onkeyup = (element) => {
+  let children = urlContainer.children;
+  let urls = [];
+  for (let i = 0; i < children.length; i++) {
+    urls.push(children[i].value);
+  }
+  chrome.storage.sync.set({ urls: urls }, () => {
+    console.log("urls are " + urls);
   });
 };
+
+addBtn.onclick = (element) => {
+  addUrlInput("");
+};
+
+function addUrlInput(url) {
+  let newUrl = document.createElement("input");
+  newUrl.placeholder = "Enter Banner URL";
+  newUrl.value = url;
+  urlContainer.append(newUrl);
+}
