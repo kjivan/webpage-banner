@@ -38,6 +38,10 @@ function updateListener(urls) {
       return { hostContains: url };
     });
 
+  if (urls.length === 0) {
+    return;
+  }
+
   chrome.webNavigation.onCompleted.addListener(addBanner, {
     url: urls,
   });
