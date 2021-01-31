@@ -1,11 +1,11 @@
 chrome.runtime.onInstalled.addListener(function () {
-  chrome.storage.sync.get("url", (data) => {
-    if (data.url) {
-      updateListener(data.url);
-      console.log("onInstalled" + data.url);
+  chrome.storage.sync.get("urls", (data) => {
+    if (data.urls) {
+      updateListener(data.urls);
+      console.log("onInstalled" + data.urls);
       return;
     }
-    chrome.storage.sync.set({ url: "jivan.cc" }, function () {
+    chrome.storage.sync.set({ urls: ["jivan.cc"] }, function () {
       console.log("Defaulting url to jivan.cc");
     });
   });
@@ -25,16 +25,16 @@ function applyToAllPages() {
 }
 
 chrome.storage.onChanged.addListener((value) => {
-  updateListener(value.url.newValue);
-  console.log("onchange" + value.url.newValue);
+  updateListener(value.urls.newValue);
+  console.log("onchange" + value.urls.newValue);
 });
 
-function updateListener(url) {
+function updateListener(urls) {
   chrome.webNavigation.onCompleted.removeListener(addBanner);
   chrome.webNavigation.onCompleted.addListener(addBanner, {
     url: [
       {
-        hostContains: url,
+        hostContains: urls[0],
       },
     ],
   });
