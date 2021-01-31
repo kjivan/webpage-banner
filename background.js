@@ -32,8 +32,14 @@ chrome.storage.onChanged.addListener((value) => {
 function updateListener(urls) {
   chrome.webNavigation.onCompleted.removeListener(addBanner);
 
+  urls = urls
+    .filter((url) => url.trim().length !== 0)
+    .map((url) => {
+      return { hostContains: url };
+    });
+
   chrome.webNavigation.onCompleted.addListener(addBanner, {
-    url: urls.map((url) => Object.assign({}, { hostContains: url })),
+    url: urls,
   });
 }
 
