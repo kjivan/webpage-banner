@@ -1,10 +1,8 @@
-let host = "";
-
 chrome.runtime.onInstalled.addListener(function () {
   chrome.storage.sync.get("url", (data) => {
     if (data.url) {
-      host = data.url;
-      console.log("onInstalled" + host);
+      updateListener(data.url);
+      console.log("onInstalled" + data.url);
       return;
     }
     chrome.storage.sync.set({ url: "jivan.cc" }, function () {
@@ -27,22 +25,23 @@ function applyToAllPages() {
 }
 
 chrome.storage.onChanged.addListener((value) => {
-  host = value.url.newValue;
-  console.log("onchange" + host);
+  updateListener(value.url.newValue);
+  console.log("onchange" + value.url.newValue);
 });
 
-chrome.webNavigation.onCompleted.addListener(
-  (details) => {
-    console.log("onCompleted" + host);
-    chrome.tabs.executeScript(details.tabId, {
-      file: "banner.js",
-    });
-  },
-  {
+function updateListener(url) {
+  chrome.webNavigation.onCompleted.removeListener(addBanner);
+  chrome.webNavigation.onCompleted.addListener(addBanner, {
     url: [
       {
-        hostContains: host,
+        hostContains: url,
       },
     ],
-  }
-);
+  });
+}
+
+function addBanner(details) {
+  chrome.tabs.executeScript(details.tabId, {
+    file: "banner.js",
+  });
+}
