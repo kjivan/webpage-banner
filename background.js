@@ -2,7 +2,7 @@ chrome.runtime.onInstalled.addListener(function () {
   chrome.storage.sync.get("urls", (data) => {
     if (data.urls) {
       updateListener(data.urls);
-      console.log("onInstalled" + data.urls);
+      console.log("onInstalled: " + data.urls);
       return;
     }
     chrome.storage.sync.set({ urls: ["jivan.cc"] }, function () {
@@ -31,12 +31,9 @@ chrome.storage.onChanged.addListener((value) => {
 
 function updateListener(urls) {
   chrome.webNavigation.onCompleted.removeListener(addBanner);
+
   chrome.webNavigation.onCompleted.addListener(addBanner, {
-    url: [
-      {
-        hostContains: urls[0],
-      },
-    ],
+    url: urls.map((url) => Object.assign({}, { hostContains: url })),
   });
 }
 
