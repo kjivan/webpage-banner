@@ -14,3 +14,19 @@ chrome.runtime.onInstalled.addListener(function () {
     ]);
   });
 });
+
+chrome.webNavigation.onCompleted.addListener(
+  function (details) {
+    chrome.tabs.executeScript(details.tabId, {
+      code: 'document.body.style.backgroundColor = "red";',
+    });
+  },
+  {
+    url: [
+      {
+        // Runs on example.com, example.net, but also example.foo.com
+        hostContains: "jivan.cc",
+      },
+    ],
+  }
+);

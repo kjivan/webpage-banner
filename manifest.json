@@ -2,7 +2,14 @@
   "name": "Webpage Banner",
   "version": "1.0",
   "description": "Adds a banner to a specific URL",
-  "permissions": ["activeTab", "declarativeContent", "storage"],
+  "permissions": [
+    "activeTab",
+    "declarativeContent",
+    "storage",
+    "webNavigation",
+    "http://*/*",
+    "https://*/*"
+  ],
   "options_page": "options.html",
   "background": {
     "scripts": ["banner.js"],
