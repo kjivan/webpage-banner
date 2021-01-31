@@ -12,7 +12,7 @@
   ],
   "options_page": "options.html",
   "background": {
-    "scripts": ["banner.js"],
+    "scripts": ["background.js"],
     "persistent": false
   },
   "page_action": {
