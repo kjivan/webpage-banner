@@ -18,7 +18,7 @@ chrome.runtime.onInstalled.addListener(function () {
 chrome.webNavigation.onCompleted.addListener(
   function (details) {
     chrome.tabs.executeScript(details.tabId, {
-      code: 'document.body.style.backgroundColor = "red";',
+      file: "banner.js",
     });
   },
   {
