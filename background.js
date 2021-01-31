@@ -1,10 +1,21 @@
+let host = "";
+
 chrome.runtime.onInstalled.addListener(function () {
-  chrome.storage.sync.get("color", (data) => {
-    if (data.color) return;
-    chrome.storage.sync.set({ color: "#3aa757" }, function () {
-      console.log("The color is green.");
+  chrome.storage.sync.get("url", (data) => {
+    if (data.url) {
+      host = data.url;
+      console.log("onInstalled" + host);
+      return;
+    }
+    chrome.storage.sync.set({ url: "jivan.cc" }, function () {
+      console.log("Defaulting url to jivan.cc");
     });
   });
+
+  applyToAllPages();
+});
+
+function applyToAllPages() {
   chrome.declarativeContent.onPageChanged.removeRules(undefined, function () {
     chrome.declarativeContent.onPageChanged.addRules([
       {
@@ -13,10 +24,16 @@ chrome.runtime.onInstalled.addListener(function () {
       },
     ]);
   });
+}
+
+chrome.storage.onChanged.addListener((value) => {
+  host = value.url.newValue;
+  console.log("onchange" + host);
 });
 
 chrome.webNavigation.onCompleted.addListener(
-  function (details) {
+  (details) => {
+    console.log("onCompleted" + host);
     chrome.tabs.executeScript(details.tabId, {
       file: "banner.js",
     });
@@ -24,8 +41,7 @@ chrome.webNavigation.onCompleted.addListener(
   {
     url: [
       {
-        // Runs on example.com, example.net, but also example.foo.com
-        hostContains: "jivan.cc",
+        hostContains: host,
       },
     ],
   }
