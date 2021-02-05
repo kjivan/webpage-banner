@@ -35,7 +35,7 @@ function updateListener(urls) {
   urls = urls
     .filter((url) => url.trim().length !== 0)
     .map((url) => {
-      return { hostContains: url };
+      return { urlContains: url };
     });
 
   if (urls.length === 0) {
