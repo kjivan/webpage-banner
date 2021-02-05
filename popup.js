@@ -8,7 +8,7 @@ chrome.storage.sync.get("urls", function (data) {
   data.urls.forEach(addUrlInput);
 });
 
-urlContainer.onkeyup = () => {
+window.onblur = () => {
   saveUrls();
 };
 
