@@ -4,8 +4,7 @@ chrome.runtime.onInstalled.addListener(function () {
       updateListener(data.urls);
       return;
     }
-    chrome.storage.sync.set({ urls: ["jivan.cc"] }, function () {
-    });
+    chrome.storage.sync.set({ urls: [""] }, function () {});
   });
 
   applyToAllPages();
