@@ -12,7 +12,7 @@ window.onblur = () => {
   saveUrls();
 };
 
-addBtn.onclick = (element) => {
+addBtn.onclick = () => {
   addUrlInput("");
 };
 
@@ -22,8 +22,7 @@ function saveUrls() {
   for (let i = 0; i < children.length; i++) {
     urls.push(children[i].children[urlIndex].value);
   }
-  chrome.storage.sync.set({ urls: urls }, () => {
-  });
+  chrome.storage.sync.set({ urls: urls }, () => {});
 }
 
 function addUrlInput(url) {
