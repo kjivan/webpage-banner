@@ -2,11 +2,9 @@ chrome.runtime.onInstalled.addListener(function () {
   chrome.storage.sync.get("urls", (data) => {
     if (data.urls) {
       updateListener(data.urls);
-      console.log("onInstalled: " + data.urls);
       return;
     }
     chrome.storage.sync.set({ urls: ["jivan.cc"] }, function () {
-      console.log("Defaulting url to jivan.cc");
     });
   });
 
@@ -26,7 +24,6 @@ function applyToAllPages() {
 
 chrome.storage.onChanged.addListener((value) => {
   updateListener(value.urls.newValue);
-  console.log("onchange" + value.urls.newValue);
 });
 
 function updateListener(urls) {

@@ -23,7 +23,6 @@ function saveUrls() {
     urls.push(children[i].children[urlIndex].value);
   }
   chrome.storage.sync.set({ urls: urls }, () => {
-    console.log("urls are " + urls);
   });
 }
 
