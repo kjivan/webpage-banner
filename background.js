@@ -1,10 +1,13 @@
 chrome.runtime.onInstalled.addListener(function () {
-  chrome.storage.sync.get("urls", (data) => {
-    if (data.urls) {
-      updateListener(data.urls);
+  chrome.storage.sync.get("bannerConfigs", (data) => {
+    if (data.bannerConfigs) {
+      updateListener(data.bannerConfigs);
       return;
     }
-    chrome.storage.sync.set({ urls: [""] }, function () {});
+    chrome.storage.sync.set(
+      { bannerConfigs: [{ url: "", querySelector: "" }] },
+      () => {}
+    );
   });
 
   applyToAllPages();
@@ -22,11 +25,13 @@ function applyToAllPages() {
 }
 
 chrome.storage.onChanged.addListener((value) => {
-  updateListener(value.urls.newValue);
+  updateListener(value.bannerConfigs.newValue);
 });
 
-function updateListener(urls) {
+function updateListener(bannerConfigs) {
   chrome.webNavigation.onCompleted.removeListener(addBanner);
+
+  let urls = bannerConfigs.map((config) => config.url);
 
   urls = urls
     .filter((url) => url.trim().length !== 0)

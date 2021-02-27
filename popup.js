@@ -6,7 +6,7 @@ const locationSelectorClass = "locationSelector";
 const defaultSelector = "body";
 
 chrome.storage.sync.get("bannerConfigs", function (data) {
-  data.urls.forEach(addInputs);
+  data.bannerConfigs.forEach(addInputs);
 });
 
 window.onblur = () => {
@@ -22,8 +22,8 @@ function saveBannerConfigs() {
   let bannerConfigs = [];
   for (let i = 0; i < children.length; i++) {
     bannerConfigs.push({
-      url: children[i].querySelector(urlClass).value,
-      locationSelector: children[i].querySelector(locationSelector).value,
+      url: children[i].querySelector("." + urlClass).value,
+      locationSelector: children[i].querySelector("." + locationSelectorClass).value,
     });
   }
   chrome.storage.sync.set({ bannerConfigs: bannerConfigs }, () => {});
