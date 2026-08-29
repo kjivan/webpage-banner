@@ -1,84 +1,140 @@
-chrome.runtime.onInstalled.addListener(function () {
-  chrome.storage.sync.get("bannerConfigs", (data) => {
-    if (data.bannerConfigs) {
-      updateListener(data.bannerConfigs);
-      return;
+/**
+ * Webpage Banner - Background Service Worker (Manifest V3)
+ */
+
+const DEFAULT_SELECTOR = "body";
+const DEFAULT_TEXT = "Production Environment";
+const DEFAULT_BG_COLOR = "#E53935";
+const DEFAULT_TEXT_COLOR = "#FFFFFF";
+
+// Initialize default storage on installation
+chrome.runtime.onInstalled.addListener(async () => {
+  try {
+    const data = await chrome.storage.sync.get("bannerConfigs");
+    if (!data.bannerConfigs || !Array.isArray(data.bannerConfigs) || data.bannerConfigs.length === 0) {
+      await chrome.storage.sync.set({
+        bannerConfigs: [
+          {
+            url: "",
+            locationSelector: DEFAULT_SELECTOR,
+            bannerText: DEFAULT_TEXT,
+            bgColor: DEFAULT_BG_COLOR,
+            textColor: DEFAULT_TEXT_COLOR,
+          },
+        ],
+      });
     }
-    chrome.storage.sync.set(
-      { bannerConfigs: [{ url: "", querySelector: "" }] },
-      () => {}
-    );
-  });
-
-  applyToAllPages();
+  } catch (error) {
+    console.error("[Webpage Banner] Initialization error:", error);
+  }
 });
 
-function applyToAllPages() {
-  chrome.declarativeContent.onPageChanged.removeRules(undefined, function () {
-    chrome.declarativeContent.onPageChanged.addRules([
-      {
-        conditions: [new chrome.declarativeContent.PageStateMatcher({})],
-        actions: [new chrome.declarativeContent.ShowPageAction()],
-      },
-    ]);
-  });
-}
-
-chrome.storage.onChanged.addListener((value) => {
-  updateListener(value.bannerConfigs.newValue);
-});
-
-function updateListener(bannerConfigs) {
-  chrome.webNavigation.onCompleted.removeListener(addBanner);
-
-  let urls = bannerConfigs.map((config) => config.url);
-
-  urls = urls
-    .filter((url) => url.trim().length !== 0)
-    .map((url) => {
-      return { urlContains: url };
-    });
-
-  if (urls.length === 0) {
+/**
+ * Top-level listener for navigation completion.
+ * In MV3, listeners must be registered synchronously at the top level
+ * so the service worker responds properly when awakened by browser events.
+ */
+chrome.webNavigation.onCompleted.addListener(async (details) => {
+  // Only inject in the top-level main frame
+  if (details.frameId !== 0 || !details.url) {
     return;
   }
 
-  chrome.webNavigation.onCompleted.addListener(addBanner, {
-    url: urls,
-  });
-}
+  // Ignore internal/browser URLs
+  if (
+    details.url.startsWith("chrome://") ||
+    details.url.startsWith("chrome-extension://") ||
+    details.url.startsWith("edge://") ||
+    details.url.startsWith("about:")
+  ) {
+    return;
+  }
 
-function addBanner(details) {
-  chrome.storage.sync.get("bannerConfigs", (data) => {
-    let querySelector = data.bannerConfigs.filter((config) =>
-      details.url.includes(config.url)
-    )[0].locationSelector;
-    console.log(querySelector);
-    console.log(typeof querySelector);
-    console.log(bannerJs(querySelector));
-    chrome.tabs.executeScript(details.tabId, {
-      // file: "banner.js",
-      code: bannerJs(querySelector),
-    });
-  });
-}
+  try {
+    const data = await chrome.storage.sync.get("bannerConfigs");
+    const bannerConfigs = data.bannerConfigs || [];
 
-function bannerJs(querySelector) {
-  return `
-var d = document.createElement("div");
-d.style.position = "sticky";
-d.style.top = "0px";
-d.style.zIndex = "2147483647";
-d.style.width = "100%";
-d.style.height = "30px";
-d.style.padding = "2px";
-d.style.fontSize = "20px";
-d.style.textAlign = "left";
-d.style.backgroundColor = "#E53935";
-d.style.color = "#333333";
-d.append(document.createTextNode("Production Environment"));
-let bannerParent = document.querySelector("${querySelector}");
-console.log(bannerParent);
-bannerParent.insertBefore(d, bannerParent.firstChild);
- `;
+    // Find any configurations matching the current URL
+    const matchingConfigs = bannerConfigs.filter(
+      (config) => config.url && config.url.trim().length > 0 && details.url.includes(config.url.trim())
+    );
+
+    if (matchingConfigs.length === 0) {
+      return;
+    }
+
+    for (const config of matchingConfigs) {
+      await chrome.scripting.executeScript({
+        target: { tabId: details.tabId },
+        func: injectBanner,
+        args: [
+          {
+            selector: config.locationSelector || DEFAULT_SELECTOR,
+            text: config.bannerText || DEFAULT_TEXT,
+            bgColor: config.bgColor || DEFAULT_BG_COLOR,
+            textColor: config.textColor || DEFAULT_TEXT_COLOR,
+          },
+        ],
+      });
+    }
+  } catch (error) {
+    console.error("[Webpage Banner] Failed to inject banner:", error);
+  }
+});
+
+/**
+ * Injected banner function executed in the context of the webpage.
+ *
+ * @param {Object} options Configuration options for the banner.
+ */
+function injectBanner(options) {
+  const BANNER_ID = "__webpage_banner_extension__";
+
+  // Prevent duplicate banners on the same page
+  if (document.getElementById(BANNER_ID)) {
+    return;
+  }
+
+  const banner = document.createElement("div");
+  banner.id = BANNER_ID;
+  banner.style.position = "sticky";
+  banner.style.top = "0px";
+  banner.style.left = "0px";
+  banner.style.zIndex = "2147483647";
+  banner.style.width = "100%";
+  banner.style.boxSizing = "border-box";
+  banner.style.padding = "8px 16px";
+  banner.style.fontSize = "16px";
+  banner.style.fontWeight = "bold";
+  banner.style.fontFamily = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+  banner.style.textAlign = "center";
+  banner.style.backgroundColor = options.bgColor || "#E53935";
+  banner.style.color = options.textColor || "#FFFFFF";
+  banner.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.25)";
+  banner.style.display = "flex";
+  banner.style.justifyContent = "center";
+  banner.style.alignItems = "center";
+  banner.style.lineHeight = "1.4";
+  banner.textContent = options.text || "Production Environment";
+
+  // Find target parent container based on selector
+  let parentElement = null;
+  const selector = (options.selector || "").trim();
+
+  if (selector) {
+    try {
+      parentElement = document.querySelector(selector);
+    } catch {
+      console.warn("[Webpage Banner] Invalid CSS selector:", selector);
+    }
+  }
+
+  // Fallback to body or documentElement if target element not found
+  if (!parentElement) {
+    parentElement = document.body || document.documentElement;
+  }
+
+  if (parentElement) {
+    parentElement.insertBefore(banner, parentElement.firstChild);
+  }
 }

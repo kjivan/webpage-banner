@@ -1,56 +1,210 @@
-let urlContainer = document.getElementById("url-container");
-let addBtn = document.getElementById("add-url");
+/**
+ * Webpage Banner - Popup Script (Manifest V3)
+ */
 
-const urlClass = "url";
-const locationSelectorClass = "locationSelector";
-const defaultSelector = "body";
+const urlContainer = document.getElementById("url-container");
+const addBtn = document.getElementById("add-url");
+const statusIndicator = document.getElementById("save-status");
 
-chrome.storage.sync.get("bannerConfigs", function (data) {
-  data.bannerConfigs.forEach(addInputs);
+const DEFAULT_CONFIG = {
+  url: "",
+  locationSelector: "body",
+  bannerText: "Production Environment",
+  bgColor: "#E53935",
+  textColor: "#FFFFFF",
+};
+
+let saveTimeout = null;
+
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    const data = await chrome.storage.sync.get("bannerConfigs");
+    const bannerConfigs = data.bannerConfigs || [];
+
+    if (bannerConfigs.length === 0) {
+      addBannerRule(DEFAULT_CONFIG);
+    } else {
+      bannerConfigs.forEach((config) => addBannerRule(config));
+    }
+  } catch (error) {
+    console.error("[Webpage Banner] Error loading settings:", error);
+    addBannerRule(DEFAULT_CONFIG);
+  }
+
+  renderEmptyStateIfNeeded();
 });
 
-window.onblur = () => {
+addBtn.addEventListener("click", () => {
+  addBannerRule(DEFAULT_CONFIG);
+  triggerAutoSave();
+});
+
+// Auto-save when user modifies any input in the form
+urlContainer.addEventListener("input", () => {
+  triggerAutoSave();
+});
+
+urlContainer.addEventListener("change", () => {
+  triggerAutoSave();
+});
+
+window.addEventListener("blur", () => {
   saveBannerConfigs();
-};
+});
 
-addBtn.onclick = () => {
-  addInputs({ url: "", locationSelector: defaultSelector });
-};
-
-function saveBannerConfigs() {
-  let children = urlContainer.children;
-  let bannerConfigs = [];
-  for (let i = 0; i < children.length; i++) {
-    bannerConfigs.push({
-      url: children[i].querySelector("." + urlClass).value,
-      locationSelector: children[i].querySelector("." + locationSelectorClass).value,
-    });
-  }
-  chrome.storage.sync.set({ bannerConfigs: bannerConfigs }, () => {});
+function triggerAutoSave() {
+  showStatus("Saving...");
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(async () => {
+    await saveBannerConfigs();
+    showStatus("Saved ✓");
+    setTimeout(() => showStatus(""), 2000);
+  }, 300);
 }
 
-function addInputs({ url, locationSelector }) {
-  let newUrl = document.createElement("input");
-  newUrl.placeholder = "Banner URL";
-  newUrl.classList.add(urlClass);
-  newUrl.value = url;
+function showStatus(text) {
+  if (statusIndicator) {
+    statusIndicator.textContent = text;
+  }
+}
 
-  let newLocationSelector = document.createElement("input");
-  newLocationSelector.placeholder = "Location CSS Selector";
-  newLocationSelector.classList.add(locationSelectorClass);
-  newLocationSelector.value = locationSelector;
+async function saveBannerConfigs() {
+  const cards = urlContainer.querySelectorAll(".rule-card");
+  const bannerConfigs = [];
 
-  let removeBtn = document.createElement("button");
-  removeBtn.append(document.createTextNode("X"));
-  removeBtn.onclick = (event) => {
-    event.target.parentElement.remove();
-    saveBannerConfigs();
-  };
+  cards.forEach((card) => {
+    const urlInput = card.querySelector(".input-url");
+    const selectorInput = card.querySelector(".input-selector");
+    const textInput = card.querySelector(".input-text");
+    const colorInput = card.querySelector(".input-color");
 
-  let div = document.createElement("div");
-  div.append(newUrl);
-  div.append(newLocationSelector);
-  div.append(removeBtn);
+    const url = urlInput ? urlInput.value.trim() : "";
+    const locationSelector = selectorInput && selectorInput.value.trim() ? selectorInput.value.trim() : "body";
+    const bannerText = textInput && textInput.value.trim() ? textInput.value.trim() : "Production Environment";
+    const bgColor = colorInput ? colorInput.value : "#E53935";
 
-  urlContainer.append(div);
+    bannerConfigs.push({
+      url,
+      locationSelector,
+      bannerText,
+      bgColor,
+      textColor: getContrastColor(bgColor),
+    });
+  });
+
+  try {
+    await chrome.storage.sync.set({ bannerConfigs });
+  } catch (error) {
+    console.error("[Webpage Banner] Error saving configuration:", error);
+  }
+}
+
+function getContrastColor(hexColor) {
+  const hex = hexColor.replace("#", "");
+  const r = parseInt(hex.substring(0, 2), 16) || 0;
+  const g = parseInt(hex.substring(2, 4), 16) || 0;
+  const b = parseInt(hex.substring(4, 6), 16) || 0;
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 128 ? "#111111" : "#FFFFFF";
+}
+
+function renderEmptyStateIfNeeded() {
+  const existingCards = urlContainer.querySelectorAll(".rule-card");
+  let emptyState = document.getElementById("empty-state");
+
+  if (existingCards.length === 0) {
+    if (!emptyState) {
+      emptyState = document.createElement("div");
+      emptyState.id = "empty-state";
+      emptyState.className = "empty-state";
+      emptyState.textContent = "No banner rules yet. Click '+ Add Banner Rule' to create one.";
+      urlContainer.appendChild(emptyState);
+    }
+  } else if (emptyState) {
+    emptyState.remove();
+  }
+}
+
+function addBannerRule(config) {
+  const emptyState = document.getElementById("empty-state");
+  if (emptyState) emptyState.remove();
+
+  const card = document.createElement("div");
+  card.className = "rule-card";
+
+  // Top row: URL and Target CSS Selector
+  const topRow = document.createElement("div");
+  topRow.className = "rule-row";
+
+  const urlGroup = document.createElement("div");
+  urlGroup.className = "field-group";
+  urlGroup.style.flex = "2";
+  const urlLabel = document.createElement("label");
+  urlLabel.textContent = "URL Contains";
+  const urlInput = document.createElement("input");
+  urlInput.type = "text";
+  urlInput.className = "input-url";
+  urlInput.placeholder = "e.g. prod.mycompany.com";
+  urlInput.value = config.url || "";
+  urlGroup.append(urlLabel, urlInput);
+
+  const selectorGroup = document.createElement("div");
+  selectorGroup.className = "field-group";
+  selectorGroup.style.flex = "1";
+  const selectorLabel = document.createElement("label");
+  selectorLabel.textContent = "CSS Selector";
+  const selectorInput = document.createElement("input");
+  selectorInput.type = "text";
+  selectorInput.className = "input-selector";
+  selectorInput.placeholder = "body";
+  selectorInput.value = config.locationSelector || "body";
+  selectorGroup.append(selectorLabel, selectorInput);
+
+  topRow.append(urlGroup, selectorGroup);
+
+  // Bottom row: Banner text, color picker, and delete button
+  const bottomRow = document.createElement("div");
+  bottomRow.className = "rule-row";
+
+  const textGroup = document.createElement("div");
+  textGroup.className = "field-group";
+  textGroup.style.flex = "2";
+  const textLabel = document.createElement("label");
+  textLabel.textContent = "Banner Text";
+  const textInput = document.createElement("input");
+  textInput.type = "text";
+  textInput.className = "input-text";
+  textInput.placeholder = "Production Environment";
+  textInput.value = config.bannerText || "Production Environment";
+  textGroup.append(textLabel, textInput);
+
+  const colorGroup = document.createElement("div");
+  colorGroup.className = "field-group";
+  colorGroup.style.flex = "0 0 auto";
+  const colorLabel = document.createElement("label");
+  colorLabel.textContent = "Color";
+  const colorInputWrapper = document.createElement("div");
+  colorInputWrapper.className = "color-input-wrapper";
+  const colorInput = document.createElement("input");
+  colorInput.type = "color";
+  colorInput.className = "input-color";
+  colorInput.value = config.bgColor || "#E53935";
+  colorInputWrapper.append(colorInput);
+  colorGroup.append(colorLabel, colorInputWrapper);
+
+  const removeBtn = document.createElement("button");
+  removeBtn.className = "btn btn-danger";
+  removeBtn.type = "button";
+  removeBtn.title = "Delete rule";
+  removeBtn.textContent = "Remove";
+  removeBtn.addEventListener("click", () => {
+    card.remove();
+    renderEmptyStateIfNeeded();
+    triggerAutoSave();
+  });
+
+  bottomRow.append(textGroup, colorGroup, removeBtn);
+
+  card.append(topRow, bottomRow);
+  urlContainer.append(card);
 }

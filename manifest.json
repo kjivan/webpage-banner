@@ -1,19 +1,21 @@
 {
+  "manifest_version": 3,
   "name": "Webpage Banner",
-  "version": "1.0",
-  "description": "Adds a banner to a specific URL",
+  "version": "2.0.0",
+  "description": "Adds a customizable banner to specific URLs",
   "permissions": [
-    "declarativeContent",
     "storage",
     "webNavigation",
+    "scripting"
+  ],
+  "host_permissions": [
     "http://*/*",
     "https://*/*"
   ],
   "background": {
-    "scripts": ["background.js"],
-    "persistent": false
+    "service_worker": "background.js"
   },
-  "page_action": {
+  "action": {
     "default_popup": "popup.html",
     "default_icon": {
       "16": "images/favicon-16x16.png",
@@ -27,6 +29,5 @@
     "32": "images/favicon-32x32.png",
     "48": "images/favicon-48x48.png",
     "128": "images/favicon-128x128.png"
-  },
-  "manifest_version": 2
+  }
 }
