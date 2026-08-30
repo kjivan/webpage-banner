@@ -63,20 +63,22 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
       return;
     }
 
-    for (const config of matchingConfigs) {
-      await chrome.scripting.executeScript({
-        target: { tabId: details.tabId },
-        func: injectBanner,
-        args: [
-          {
-            selector: config.locationSelector || DEFAULT_SELECTOR,
-            text: config.bannerText || DEFAULT_TEXT,
-            bgColor: config.bgColor || DEFAULT_BG_COLOR,
-            textColor: config.textColor || DEFAULT_TEXT_COLOR,
-          },
-        ],
-      });
-    }
+    // Most specific rule wins: sort by longest matching URL string descending
+    matchingConfigs.sort((a, b) => b.url.trim().length - a.url.trim().length);
+    const bestConfig = matchingConfigs[0];
+
+    await chrome.scripting.executeScript({
+      target: { tabId: details.tabId },
+      func: injectBanner,
+      args: [
+        {
+          selector: bestConfig.locationSelector || DEFAULT_SELECTOR,
+          text: bestConfig.bannerText || DEFAULT_TEXT,
+          bgColor: bestConfig.bgColor || DEFAULT_BG_COLOR,
+          textColor: bestConfig.textColor || DEFAULT_TEXT_COLOR,
+        },
+      ],
+    });
   } catch (error) {
     console.error("[Webpage Banner] Failed to inject banner:", error);
   }
