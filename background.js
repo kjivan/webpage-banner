@@ -5,7 +5,6 @@
 const DEFAULT_SELECTOR = "body";
 const DEFAULT_TEXT = "Production Environment";
 const DEFAULT_BG_COLOR = "#E53935";
-const DEFAULT_TEXT_COLOR = "#FFFFFF";
 
 // Initialize default storage on installation
 chrome.runtime.onInstalled.addListener(async () => {
@@ -19,7 +18,6 @@ chrome.runtime.onInstalled.addListener(async () => {
             locationSelector: DEFAULT_SELECTOR,
             bannerText: DEFAULT_TEXT,
             bgColor: DEFAULT_BG_COLOR,
-            textColor: DEFAULT_TEXT_COLOR,
           },
         ],
       });
@@ -28,6 +26,22 @@ chrome.runtime.onInstalled.addListener(async () => {
     console.error("[Webpage Banner] Initialization error:", error);
   }
 });
+
+/**
+ * Calculates high-contrast text color (#111111 or #FFFFFF) for a given hex background color.
+ *
+ * @param {string} hexColor Hex color string (e.g. "#E53935").
+ * @returns {string} Text color hex.
+ */
+function getContrastColor(hexColor) {
+  if (!hexColor || typeof hexColor !== "string") return "#FFFFFF";
+  const hex = hexColor.replace("#", "");
+  const r = parseInt(hex.substring(0, 2), 16) || 0;
+  const g = parseInt(hex.substring(2, 4), 16) || 0;
+  const b = parseInt(hex.substring(4, 6), 16) || 0;
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 128 ? "#111111" : "#FFFFFF";
+}
 
 /**
  * Top-level listener for navigation completion.
@@ -66,6 +80,8 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
     // Most specific rule wins: sort by longest matching URL string descending
     matchingConfigs.sort((a, b) => b.url.trim().length - a.url.trim().length);
     const bestConfig = matchingConfigs[0];
+    const bgColor = bestConfig.bgColor || DEFAULT_BG_COLOR;
+    const textColor = bestConfig.textColor || getContrastColor(bgColor);
 
     await chrome.scripting.executeScript({
       target: { tabId: details.tabId },
@@ -74,8 +90,8 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
         {
           selector: bestConfig.locationSelector || DEFAULT_SELECTOR,
           text: bestConfig.bannerText || DEFAULT_TEXT,
-          bgColor: bestConfig.bgColor || DEFAULT_BG_COLOR,
-          textColor: bestConfig.textColor || DEFAULT_TEXT_COLOR,
+          bgColor: bgColor,
+          textColor: textColor,
         },
       ],
     });
@@ -86,6 +102,11 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
 
 /**
  * Injected banner function executed in the context of the webpage.
+ *
+ * NOTE: This function is serialized and executed in the webpage context via
+ * chrome.scripting.executeScript. Serialized functions lose their closure scope
+ * and CANNOT access module-level constants (e.g. DEFAULT_BG_COLOR). Any fallbacks
+ * must be either passed in via the options argument or defined inline here.
  *
  * @param {Object} options Configuration options for the banner.
  */

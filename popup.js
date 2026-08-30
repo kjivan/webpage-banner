@@ -11,7 +11,6 @@ const DEFAULT_CONFIG = {
   locationSelector: "body",
   bannerText: "Production Environment",
   bgColor: "#E53935",
-  textColor: "#FFFFFF",
 };
 
 let saveTimeout = null;
@@ -48,8 +47,14 @@ urlContainer.addEventListener("change", () => {
   triggerAutoSave();
 });
 
-window.addEventListener("blur", () => {
-  saveBannerConfigs();
+window.addEventListener("blur", async () => {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
+  await saveBannerConfigs();
+  showStatus("Saved ✓");
+  setTimeout(() => showStatus(""), 2000);
 });
 
 function triggerAutoSave() {
@@ -57,9 +62,10 @@ function triggerAutoSave() {
   if (saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(async () => {
     await saveBannerConfigs();
+    saveTimeout = null;
     showStatus("Saved ✓");
     setTimeout(() => showStatus(""), 2000);
-  }, 300);
+  }, 600);
 }
 
 function showStatus(text) {
@@ -88,7 +94,6 @@ async function saveBannerConfigs() {
       locationSelector,
       bannerText,
       bgColor,
-      textColor: getContrastColor(bgColor),
     });
   });
 
@@ -97,15 +102,6 @@ async function saveBannerConfigs() {
   } catch (error) {
     console.error("[Webpage Banner] Error saving configuration:", error);
   }
-}
-
-function getContrastColor(hexColor) {
-  const hex = hexColor.replace("#", "");
-  const r = parseInt(hex.substring(0, 2), 16) || 0;
-  const g = parseInt(hex.substring(2, 4), 16) || 0;
-  const b = parseInt(hex.substring(4, 6), 16) || 0;
-  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-  return yiq >= 128 ? "#111111" : "#FFFFFF";
 }
 
 function renderEmptyStateIfNeeded() {
