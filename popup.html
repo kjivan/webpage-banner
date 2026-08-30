@@ -1,42 +1,189 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Webpage Banner Settings</title>
     <link rel="stylesheet" href="css/basic.css" type="text/css" media="all" />
     <style>
-      h1 {
-        margin: 5px;
-        font-size: 1.5em;
+      :root {
+        --primary: #1a73e8;
+        --primary-hover: #1557b0;
+        --danger: #d93025;
+        --danger-hover: #b3261e;
+        --border: #dadce0;
+        --card-bg: #f8f9fa;
+        --text: #202124;
+        --text-secondary: #5f6368;
       }
-      .container {
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --primary: #8ab4f8;
+          --primary-hover: #aecbfa;
+          --danger: #f28b82;
+          --danger-hover: #ee675c;
+          --border: #3c4043;
+          --card-bg: #2d2f31;
+          --text: #e8eaed;
+          --text-secondary: #9aa0a6;
+        }
+      }
+
+      body {
+        margin: 0;
+        padding: 16px;
+        min-width: 520px;
+        background-color: var(--c3);
+        color: var(--text);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 600;
+      }
+
+      .status-indicator {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        min-height: 1.2em;
+      }
+
+      .rule-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 10px;
         display: flex;
         flex-direction: column;
-        min-width: 500px;
+        gap: 8px;
       }
-      #add-url {
-        margin: 5px;
-      }
-      #url-container > div {
+
+      .rule-row {
         display: flex;
+        gap: 8px;
+        align-items: center;
       }
-      #url-container input {
-        flex-grow: 2;
-        margin: 2px 2px 2px 4px;
+
+      .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        flex: 1;
       }
-      #url-container button {
-        background-color: #e51c23;
-        margin: 2px 4px 2px 2px;
+
+      .field-group label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--text-secondary);
       }
-      .locationSelector {
-        max-width: 30%;
+
+      .field-group input {
+        width: 100%;
+        padding: 6px 10px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 0.875rem;
+        background: var(--c3);
+        color: var(--text);
+        box-sizing: border-box;
+      }
+
+      .field-group input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+      }
+
+      .color-input-wrapper {
+        display: flex;
+        align-items: center;
+      }
+
+      input[type="color"] {
+        width: 36px;
+        height: 32px;
+        padding: 0 2px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        cursor: pointer;
+        background: transparent;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 14px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+      }
+
+      .btn-primary {
+        background-color: var(--primary);
+        color: #ffffff;
+      }
+
+      .btn-primary:hover {
+        background-color: var(--primary-hover);
+      }
+
+      .btn-danger {
+        background-color: transparent;
+        color: var(--danger);
+        border: 1px solid var(--danger);
+        padding: 6px 10px;
+        height: 32px;
+        align-self: flex-end;
+      }
+
+      .btn-danger:hover {
+        background-color: var(--danger);
+        color: #ffffff;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 20px 12px;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+      }
+
+      .footer-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 12px;
       }
     </style>
   </head>
   <body>
-    <div class="container">
+    <div class="header">
       <h1>Webpage Banner</h1>
-      <button id="add-url" name="add-url">Add Banner URL</button>
-      <div id="url-container"></div>
+      <span id="save-status" class="status-indicator"></span>
     </div>
+
+    <div id="url-container"></div>
+
+    <div class="footer-actions">
+      <button id="add-url" class="btn btn-primary" type="button">+ Add Banner Rule</button>
+    </div>
+
     <script src="popup.js"></script>
   </body>
 </html>
